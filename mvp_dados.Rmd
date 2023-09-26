@@ -1,0 +1,117 @@
+---
+title: "MVP-PUCRio-Dados"
+author: "Tales Gonçalves"
+date: "2023-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Objetivo
+
+Determinar o total de distância percorrida em Kms
+
+Maiores médias de batimentos cardíacos e os Kms percorridos
+
+Total de distância por tipo de atividade
+
+As 10 maiores distâncias percorridas
+
+Visualizar os poligonos no mapa usando api do Google Maps
+
+
+## Fonte de Dados
+Conectando na base de dados no Azure Data Factory através de driver ODBC
+
+```{r, include = FALSE}
+
+library(odbc) 
+library(DBI)
+library(tidyverse)
+
+#Driver={ODBC Driver 18 for SQL Server};Server=tcp:sqldatabaserverteste.database.windows.net,1433;Database=sqldatabase;Uid=tales;Pwd={your_password_here};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+
+# Creating connection
+my_connection <- dbConnect(drv = odbc::odbc(),
+                           Driver = "SQL Server",
+                           server = "tcp:sqldatabaserverteste.database.windows.net,1433",
+                           database = "sqldatabase",
+                           uid = "",
+                           pwd = "")
+                           
+query <- "SELECT * FROM StravaActivities"
+result <- dbGetQuery(my_connection, query)
+
+result %>% head()
+
+```
+
+## Determinar o total de distância percorrida em Kms
+
+```{r}
+df_activities <- result %>% as_data_frame()
+
+df_activities %>% summarise(Total = sum(distance)/ 1000)
+
+
+```
+
+## Maiores médias de batimentos cardíacos e os Kms percorridos
+
+```{r}
+
+df_activities %>% select(average_heartrate) %>% arrange(desc(average_heartrate)) %>% head(10)
+
+```
+
+## Total de distância por tipo de atividade
+
+```{r}
+
+df_activities %>% group_by(sport_type) %>% 
+  summarise(Total = sum(distance)/ 1000)
+
+
+```
+
+
+## As 10 maiores distâncias percorridas 
+
+```{r}
+df_activities %>% select(distance) %>% arrange(desc(distance)) %>% head(10)
+
+```
+
+
+## Visualizar os poligonos no mapa usando api do Google Maps
+
+```{r}
+
+library(googleway)
+library(mapsapi)
+library(sf)
+library(googlePolylines)
+library(jsonlite)
+library(rjson)
+library(tidyverse)
+
+mapKey <- ""
+
+file_map <- read_file("teste4_map_strava_1.json")
+
+json_mapa <- fromJSON(file_map, simplify = FALSE)
+
+list_mapa <- do.call(rbind, json_mapa)
+
+df_mapa <- data.frame(list_mapa)
+
+mapa_plot <- df_mapa %>% filter(id_activitie == "9861608348")
+
+google_map(key = mapKey, height = 800) %>%
+add_polygons(data = mapa_plot, polyline = "map_summary_polyline", fill_colour = "#FF00FF", fill_opacity = 0.2)
+
+
+```
+
