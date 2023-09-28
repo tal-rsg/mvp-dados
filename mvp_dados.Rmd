@@ -1,37 +1,24 @@
 ---
-title: "MVP-PUCRio-Dados"
+title: "MVP-Dados - PUC Rio"
 author: "Tales Gonçalves"
 date: "2023-09-11"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-# Objetivo
-
-Determinar o total de distância percorrida em Kms
-
-Maiores médias de batimentos cardíacos e os Kms percorridos
-
-Total de distância por tipo de atividade
-
-As 10 maiores distâncias percorridas
-
-Visualizar os poligonos no mapa usando api do Google Maps
-
-
-## Fonte de Dados
-Conectando na base de dados no Azure Data Factory através de driver ODBC
-
-```{r, include = FALSE}
-
+knitr::opts_chunk$set(echo = FALSE)
 library(odbc) 
 library(DBI)
 library(tidyverse)
+library(googleway)
+library(mapsapi)
+library(sf)
+library(googlePolylines)
+library(jsonlite)
+library(rjson)
+library(DT)
 
-#Driver={ODBC Driver 18 for SQL Server};Server=tcp:sqldatabaserverteste.database.windows.net,1433;Database=sqldatabase;Uid=tales;Pwd={your_password_here};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+mapKey <- ""
 
 # Creating connection
 my_connection <- dbConnect(drv = odbc::odbc(),
@@ -40,64 +27,84 @@ my_connection <- dbConnect(drv = odbc::odbc(),
                            database = "sqldatabase",
                            uid = "",
                            pwd = "")
-                           
+
+```
+
+# Objetivo
+
+-   Determinar o total de distância percorrida em Kms;
+
+-   Maiores médias de batimentos cardíacos e os Kms percorridos;
+
+-   Total de distância por tipo de atividade;
+
+-   As 10 maiores distâncias percorridas;
+
+-   Visualizar os poligonos no mapa usando api do Google Maps.
+
+
+## Fonte de Dados
+
+Conectando no banco de dados no Azure Data Factory através de driver ODBC e listando os dados
+
+```{r, warning = FALSE}
+
+
+#Driver={ODBC Driver 18 for SQL Server};Server=tcp:sqldatabaserverteste.database.windows.net,1433;Database=sqldatabase;Uid=tales;Pwd={your_password_here};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+
+#selecionado a tabela e criando data frame
+
 query <- "SELECT * FROM StravaActivities"
 result <- dbGetQuery(my_connection, query)
 
+datatable(
 result %>% head()
+)
 
 ```
 
 ## Determinar o total de distância percorrida em Kms
 
-```{r}
-df_activities <- result %>% as_data_frame()
+```{r, warning=FALSE}
+df_activities <- data_frame(result)
 
-df_activities %>% summarise(Total = sum(distance)/ 1000)
-
+datatable(
+df_activities %>% summarise(`Total KMs` = sum(distance)/ 1000)
+)
 
 ```
 
 ## Maiores médias de batimentos cardíacos e os Kms percorridos
 
-```{r}
-
-df_activities %>% select(average_heartrate) %>% arrange(desc(average_heartrate)) %>% head(10)
+```{r, warning=FALSE}
+datatable(
+df_activities %>% select(distance,average_heartrate) %>% arrange(desc(average_heartrate)) %>% head(10)
+)
 
 ```
 
 ## Total de distância por tipo de atividade
 
-```{r}
-
+```{r, warning=FALSE}
+datatable(
 df_activities %>% group_by(sport_type) %>% 
-  summarise(Total = sum(distance)/ 1000)
-
-
-```
-
-
-## As 10 maiores distâncias percorridas 
-
-```{r}
-df_activities %>% select(distance) %>% arrange(desc(distance)) %>% head(10)
+  summarise(`Total Kms` = sum(distance)/ 1000)
+)
 
 ```
 
+## As 10 maiores distâncias percorridas
 
-## Visualizar os poligonos no mapa usando api do Google Maps
+```{r, warning=FALSE}
+datatable(
+df_activities %>% select(Id,distance) %>% arrange(desc(distance)) %>% head(10)
+)
+```
+
+## Visualizaçã dos poligonos no mapa usando api do Google Maps com a maior distância percorrida
 
 ```{r}
 
-library(googleway)
-library(mapsapi)
-library(sf)
-library(googlePolylines)
-library(jsonlite)
-library(rjson)
-library(tidyverse)
-
-mapKey <- ""
 
 file_map <- read_file("teste4_map_strava_1.json")
 
@@ -105,13 +112,12 @@ json_mapa <- fromJSON(file_map, simplify = FALSE)
 
 list_mapa <- do.call(rbind, json_mapa)
 
-df_mapa <- data.frame(list_mapa)
+df_mapa <- as_tibble(list_mapa) %>% mutate(id_activitie = as.numeric(id_activitie)) %>% rename(Id = id_activitie)
 
-mapa_plot <- df_mapa %>% filter(id_activitie == "9861608348")
+mapa_plot <- df_mapa %>% filter(Id == 4940880311)
 
 google_map(key = mapKey, height = 800) %>%
 add_polygons(data = mapa_plot, polyline = "map_summary_polyline", fill_colour = "#FF00FF", fill_opacity = 0.2)
 
 
 ```
-
