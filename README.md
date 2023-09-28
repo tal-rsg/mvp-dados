@@ -133,3 +133,5 @@ Foi possível verificar que o campo data não foi carregado corretamente no banc
 Para uma melhor análise das informações foi usado a linguagem R confome link para o arquivo abaixo.
 
 [mvp_dados.Rmd](mvp_dados.Rmd)
+
+[mvp_dados.html](mvp_dados.html)
