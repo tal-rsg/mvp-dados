@@ -47,7 +47,7 @@ my_connection <- dbConnect(drv = odbc::odbc(),
 
 Conectando no banco de dados no Azure Data Factory através de driver ODBC e listando os dados
 
-```{r, warning = FALSE}
+```{r, warning = FALSE, echo= TRUE}
 
 
 #Driver={ODBC Driver 18 for SQL Server};Server=tcp:sqldatabaserverteste.database.windows.net,1433;Database=sqldatabase;Uid=tales;Pwd={your_password_here};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
@@ -103,7 +103,7 @@ df_activities %>% select(Id,distance) %>% arrange(desc(distance)) %>% head(10)
 
 ## Visualizaçã dos poligonos no mapa usando api do Google Maps com a maior distância percorrida
 
-```{r}
+```{r, echo = TRUE}
 
 
 file_map <- read_file("teste4_map_strava_1.json")
